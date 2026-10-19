@@ -64,6 +64,35 @@ def install_startup_launcher() -> bool:
     )
     return True
 
+def start_tray_icon(root):
+    """Create a real Windows notification-area icon without opening a console."""
+    try:
+        import pystray
+        from PIL import Image, ImageDraw
+
+        image = Image.new("RGB", (64, 64), (23, 32, 51))
+        draw = ImageDraw.Draw(image)
+        draw.rounded_rectangle((3, 3, 61, 61), radius=12, fill=(52, 65, 90))
+        draw.text((10, 24), "OTP", fill=(126, 231, 183))
+
+        def exit_app(icon, item):
+            icon.stop()
+            root.after(0, root.destroy)
+
+        icon = pystray.Icon(
+            "Python OTP Monitor",
+            image,
+            APP_NAME,
+            menu=pystray.Menu(pystray.MenuItem("Exit", exit_app)),
+        )
+        icon.run_detached()
+        log("System tray icon started.")
+        return icon
+    except Exception:
+        log("Could not start system tray icon:\\n" + traceback.format_exc())
+        return None
+
+
 def get_sender(root) -> str | None:
     # The judiciary OTP sender is fixed to avoid accidental filtering mistakes.
     config = read_json(CONFIG_FILE, {})
@@ -198,6 +227,7 @@ class OTPPopup:
 def main():
     root = tk.Tk()
     root.withdraw()
+    tray_icon = start_tray_icon(root)
     sender = get_sender(root)
     if not sender:
         root.destroy()
@@ -209,6 +239,8 @@ def main():
             log("Could not create startup launcher:\n" + traceback.format_exc())
     service = gmail_service(root)
     if service is None:
+        if tray_icon:
+            tray_icon.stop()
         root.destroy()
         return
     seen = set(read_json(SEEN_FILE, []))
