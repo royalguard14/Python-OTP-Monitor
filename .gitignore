@@ -6,3 +6,6 @@ otp_monitor.log
 __pycache__/
 *.py[cod]
 .venv/
+
+client_secret_*.json
+token.json
