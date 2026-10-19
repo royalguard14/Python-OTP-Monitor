@@ -13,6 +13,7 @@ from tkinter import messagebox, simpledialog
 
 APP_NAME = "Python OTP Monitor"
 SUBJECT_PHRASE = "PHJUDICIARY ePayment"
+SENDER_EMAIL = "noreply.sc@judiciary.gov.ph"
 POLL_SECONDS = 15
 APP_DIR = Path(__file__).resolve().parent
 CONFIG_FILE = APP_DIR / "config.json"
@@ -64,27 +65,16 @@ def install_startup_launcher() -> bool:
     return True
 
 def get_sender(root) -> str | None:
+    # The judiciary OTP sender is fixed to avoid accidental filtering mistakes.
     config = read_json(CONFIG_FILE, {})
-    sender = str(config.get("sender_email", "")).strip().lower()
-    if re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", sender):
-        return sender
-    while True:
-        sender = simpledialog.askstring(
-            APP_NAME,
-            "Ilagay ang eksaktong email address sa From field ng PHJUDICIARY ePayment OTP email:",
-            parent=root,
-        )
-        if sender is None:
-            return None
-        sender = sender.strip().lower()
-        if re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", sender):
-            write_json(CONFIG_FILE, {
-                "sender_email": sender,
-                "subject_phrase": SUBJECT_PHRASE,
-                "poll_seconds": POLL_SECONDS
-            })
-            return sender
-        messagebox.showerror(APP_NAME, "Hindi valid ang email address.", parent=root)
+    sender = SENDER_EMAIL.lower()
+    if str(config.get("sender_email", "")).strip().lower() != sender:
+        write_json(CONFIG_FILE, {
+            "sender_email": sender,
+            "subject_phrase": SUBJECT_PHRASE,
+            "poll_seconds": POLL_SECONDS
+        })
+    return sender
 
 def gmail_service(root):
     if not CREDENTIALS_FILE.exists():
@@ -152,18 +142,11 @@ def header(headers, name: str) -> str:
     return ""
 
 def extract_otp(text: str) -> str | None:
-    patterns = [
-        r"(?is)(?:one[- ]time password|otp|verification code|security code|authentication code)[^0-9]{0,50}([0-9][0-9 -]{3,10}[0-9])",
-        r"(?is)([0-9]{4,8})[^.\n]{0,40}(?:is your|verification code|security code|otp)",
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, text)
-        if match:
-            code = re.sub(r"\D", "", match.group(1))
-            if 4 <= len(code) <= 8:
-                return code
-    candidates = re.findall(r"(?<!\d)(\d{4,8})(?!\d)", text)
-    return candidates[0] if len(candidates) == 1 else None
+    # Expected judiciary email text: "Your One-Time Password (OTP) is 123456"
+    # Return only the six-digit code associated with that exact phrase.
+    pattern = r"(?is)Your\s+One[- ]Time\s+Password\s*\(OTP\)\s*is\s*[:\-]?\s*(\d{6})(?!\d)"
+    match = re.search(pattern, text)
+    return match.group(1) if match else None
 
 def matches_sender(from_value: str, expected: str) -> bool:
     return parseaddr(from_value)[1].strip().lower() == expected.lower()
