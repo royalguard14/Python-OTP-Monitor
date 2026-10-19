@@ -16,15 +16,15 @@ A Windows background app that watches Gmail for new emails whose From address ma
 4. Configure Google Auth Platform / OAuth consent. If the app is in Testing mode, add your Gmail account as a test user.
 5. Create an OAuth Client ID with application type Desktop app. Download the JSON and save it here as credentials.json.
 6. Run once: python otp_monitor.py
-7. Enter the exact sender email address shown in the From field of the OTP email. Your browser opens for Google authorization.
+7. The sender is preconfigured as `noreply.sc@judiciary.gov.ph`. Your browser opens for Google authorization.
 8. Once configured, the program creates a launcher in your Windows Startup folder. It runs hidden at future Windows logins.
 
 ## Behavior
 - Checks Gmail every 15 seconds.
-- Requires both the configured exact sender and a subject containing PHJUDICIARY ePayment (case-insensitive).
+- Requires sender `noreply.sc@judiciary.gov.ph` and a subject containing `PHJUDICIARY ePayment` (case-insensitive).
 - The first run establishes a baseline and does not show old matching emails.
 - Popup stays until you click Close. Copy OTP copies the detected code to the clipboard.
-- If code extraction fails, the popup still appears and tells you to inspect the email.
+- Extracts exactly six digits following `Your One-Time Password (OTP) is`. If that phrase/code is not found, the popup still appears and tells you to inspect the email.
 
 ## Files
 - otp_monitor.py — main program
