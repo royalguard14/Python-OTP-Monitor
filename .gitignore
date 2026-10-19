@@ -1,0 +1,8 @@
+credentials.json
+token.json
+config.json
+seen_message_ids.json
+otp_monitor.log
+__pycache__/
+*.py[cod]
+.venv/
